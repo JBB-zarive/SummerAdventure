@@ -11,7 +11,7 @@
 const APP_CONFIG = {
   // URL de votre Google Apps Script (déployé comme Application Web)
   // Format : https://script.google.com/macros/s/XXXXX/exec
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxGUDLmVIfMTMhAcgGPQ5evfhlhM6-5hBC7QMefilKsnH7lFV90F4RLlxNRk67WN2PweQ/exec',
 
   // Nom affiché dans l'app (optionnel, modifiable aussi depuis Parents > Paramètres)
   APP_NAME: 'Summer Adventure',
