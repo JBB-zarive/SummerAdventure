@@ -101,12 +101,7 @@
     <div class="setup-title">Summer Adventure</div>
     <div class="setup-subtitle">Configurons l'application !</div>
 
-    <div class="setup-step-indicator">
-      <div class="step-dot active" id="dot-1"></div>
-      <div class="step-dot" id="dot-2"></div>
-    </div>
-
-    <!-- Étape 1 : Enfant -->
+    <!-- Étape unique : Enfant -->
     <div id="setup-step-1" class="setup-step">
       <div class="setup-field">
         <label class="setup-label">👤 Prénom de l'enfant</label>
@@ -133,21 +128,7 @@
         </div>
         <p class="setup-hint">Cela personnalise les badges et les titres de niveaux.</p>
       </div>
-      <button class="setup-btn" id="setup-next-btn">Continuer →</button>
-    </div>
-
-    <!-- Étape 2 : API -->
-    <div id="setup-step-2" class="setup-step hidden">
-      <div class="setup-field">
-        <label class="setup-label">🔗 URL de l'API Google Sheets</label>
-        <input type="url" id="setup-api-url" class="setup-input" placeholder="https://script.google.com/macros/s/…/exec" />
-        <p class="setup-hint">
-          Déploie d'abord le script Google Apps Script et copie l'URL ici.<br>
-          <a href="https://github.com" target="_blank">Voir le guide de déploiement →</a>
-        </p>
-      </div>
       <button class="setup-btn" id="setup-finish-btn">🚀 Lancer l'aventure !</button>
-      <button class="setup-btn-secondary" id="setup-back-btn">← Retour</button>
     </div>
   </div>
 </div>
@@ -629,6 +610,7 @@
   </nav>
 </div>
 
+<script src="config.js"></script>
 <script src="api.js"></script>
 <script src="app.js"></script>
 </body>

@@ -6,7 +6,7 @@
 
 const API = (() => {
   const API_URL_KEY = 'chloe_api_url';
-  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwRZdioao9ygpcse4ouQlG9Fhb4VPzPVreSvSBOdbdWzpxEX0COXUx8iZL0dv-NjKRg/exec';
+  const DEFAULT_URL = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.API_URL) ? APP_CONFIG.API_URL : '';
 
   function getApiUrl() {
     return localStorage.getItem(API_URL_KEY) || DEFAULT_URL;
@@ -17,31 +17,42 @@ const API = (() => {
 
   async function get(action, params = {}) {
     const url = getApiUrl();
+    console.log('[API] GET', action, '| URL:', url || 'VIDE ⚠️');
     if (!url) return { ok: false, error: 'API non configurée' };
     try {
       const qs = new URLSearchParams({ action, ...params }).toString();
       const res = await fetch(`${url}?${qs}`, { method: 'GET' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
+      console.log('[API] GET', action, '→ OK', data);
       return { ok: true, data };
     } catch(err) {
+      console.error('[API] GET', action, '→ ERREUR', err.message);
       return { ok: false, error: err.message, offline: true };
     }
   }
 
   async function post(action, payload = {}) {
     const url = getApiUrl();
-    if (!url) return { ok: false, error: 'API non configurée' };
+    console.log('[API] POST', action, '| URL:', url || 'VIDE ⚠️', '| payload:', payload);
+    if (!url) {
+      console.error('[API] POST bloqué : URL vide !');
+      return { ok: false, error: 'API non configurée' };
+    }
     try {
+      const body = JSON.stringify({ action, ...payload });
+      console.log('[API] POST body:', body);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action, ...payload })
+        body
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
+      console.log('[API] POST', action, '→ OK', data);
       return { ok: true, data };
     } catch(err) {
+      console.error('[API] POST', action, '→ ERREUR', err.message);
       return { ok: false, error: err.message, offline: true };
     }
   }

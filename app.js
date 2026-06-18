@@ -19,8 +19,9 @@ function saveConfig(cfg) {
   try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); } catch(e) {}
 }
 function isConfigured() {
+  // On a juste besoin du prénom et du genre — l'URL est dans config.js
   const cfg = getConfig();
-  return cfg && cfg.childName && cfg.gender && cfg.apiUrl;
+  return cfg && cfg.childName && cfg.gender;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -340,9 +341,14 @@ async function syncFromSheets() {
 }
 function updateSyncStatus(msg) { const el = $('#sync-status'); if (el) el.textContent = msg; }
 function startAutoSync() {
+  // Priorité : 1) config.js (fichier déployé) 2) localStorage (saisi dans l'app)
+  const configUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.API_URL) ? APP_CONFIG.API_URL : null;
   const cfg = getConfig();
-  if (cfg && cfg.apiUrl && !cfg.apiUrl.includes('VOTRE')) {
-    API.setApiUrl(cfg.apiUrl);
+  const apiUrl = configUrl || (cfg && cfg.apiUrl) || '';
+  if (apiUrl) {
+    API.setApiUrl(apiUrl);
+    // Met aussi à jour le localStorage pour cohérence
+    if (cfg) { cfg.apiUrl = apiUrl; saveConfig(cfg); }
     syncFromSheets().then(() => {
       setTimeout(() => checkAbsenceNews(), 500);
     }).catch(() => {});
@@ -368,34 +374,17 @@ function hideSetupScreen() {
 
 let setupStep = 1;
 function initSetupScreen() {
-  const btnNext = document.getElementById('setup-next-btn');
   const btnFinish = document.getElementById('setup-finish-btn');
-  const btnBack = document.getElementById('setup-back-btn');
-
-  if (btnNext) btnNext.addEventListener('click', () => {
-    const name = document.getElementById('setup-child-name')?.value.trim();
-    const gender = document.querySelector('input[name="setup-gender"]:checked')?.value;
-    if (!name) { showToast('Entre un prénom !', 'error'); return; }
-    if (!gender) { showToast('Choisis un genre !', 'error'); return; }
-    document.getElementById('setup-step-1').classList.add('hidden');
-    document.getElementById('setup-step-2').classList.remove('hidden');
-    setupStep = 2;
-  });
-
-  if (btnBack) btnBack.addEventListener('click', () => {
-    document.getElementById('setup-step-2').classList.add('hidden');
-    document.getElementById('setup-step-1').classList.remove('hidden');
-    setupStep = 1;
-  });
-
-  if (btnFinish) btnFinish.addEventListener('click', async () => {
+  if (btnFinish) btnFinish.addEventListener('click', () => {
     const name   = document.getElementById('setup-child-name')?.value.trim();
     const gender = document.querySelector('input[name="setup-gender"]:checked')?.value;
-    const apiUrl = document.getElementById('setup-api-url')?.value.trim();
-    if (!apiUrl) { showToast('L\'URL de l\'API est requise !', 'error'); return; }
+    if (!name)   { showToast('Entre un prénom !', 'error'); return; }
+    if (!gender) { showToast('Choisis un genre !', 'error'); return; }
+    // L'URL vient de config.js uniquement
+    const apiUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.API_URL) ? APP_CONFIG.API_URL : '';
     const cfg = { childName: name, gender, apiUrl };
     saveConfig(cfg);
-    API.setApiUrl(apiUrl);
+    if (apiUrl) API.setApiUrl(apiUrl);
     STATE.user.name = name;
     STATE.user.id   = 'child';
     hideSetupScreen();
@@ -434,14 +423,23 @@ function initApp() {
 }
 
 function afterInit() {
+  // Charge l'URL depuis config.js en priorité
+  const configUrl = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.API_URL) ? APP_CONFIG.API_URL : null;
+  console.log('[CONFIG] APP_CONFIG:', typeof APP_CONFIG !== 'undefined' ? APP_CONFIG : 'NON CHARGÉ ⚠️');
+  console.log('[CONFIG] URL depuis config.js:', configUrl || 'VIDE');
+  console.log('[CONFIG] URL depuis localStorage:', (getConfig() && getConfig().apiUrl) || 'VIDE');
+  if (configUrl) API.setApiUrl(configUrl);
+
   if (!isConfigured()) {
-    // Pas encore configuré → affiche l'écran setup (cache le splash)
+    // Pas encore configuré → affiche l'écran setup
+    // Si config.js a l'URL, on saute l'étape 2 du setup (pré-remplie)
     const splash = document.getElementById('splash-screen');
-    if (splash) { splash.classList.add('hidden'); }
+    if (splash) splash.classList.add('hidden');
     showSetupScreen();
   } else {
     const cfg = getConfig();
-    if (cfg && cfg.apiUrl) API.setApiUrl(cfg.apiUrl);
+    const apiUrl = configUrl || (cfg && cfg.apiUrl) || '';
+    if (apiUrl) API.setApiUrl(apiUrl);
     if (!STATE.missions.length && API.getApiUrl()) {
       syncFromSheets().finally(() => hideSplash());
       setTimeout(hideSplash, 6000);
