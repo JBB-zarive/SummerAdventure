@@ -516,19 +516,36 @@ function renderHomePage() {
 function renderMissionsPage(filter = 'all') {
   const missions = STATE.missions.filter(m => m.type === 'mission' && !m.secret);
   const filtered = (filter === 'all' ? missions : missions.filter(m => m.cat === filter)).sort((a, b) => a.xp - b.xp);
+  const active = filtered.filter(m => getCompletionStatus(m.id) !== 'done');
+  const done   = filtered.filter(m => getCompletionStatus(m.id) === 'done');
   const $list = $('#missions-list');
-  $list.innerHTML = filtered.length ? filtered.map(missionCardHTML).join('') : '<div class="empty-state"><span class="empty-state-icon">🎯</span>Aucune mission ici.</div>';
+  if (!filtered.length) {
+    $list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🎯</span>Aucune mission ici.</div>';
+  } else {
+    let html = active.map(missionCardHTML).join('');
+    if (done.length > 0) {
+      html += '<div class="done-separator"><span>✅ Accomplies</span></div>';
+      html += done.map(missionCardHTML).join('');
+    }
+    $list.innerHTML = html;
+  }
   bindMissionCards($list);
 }
 
 function renderQuetesPage() {
   const quetes = STATE.missions.filter(m => m.type === 'quete' && !m.secret);
-  const done = quetes.filter(m => getCompletionStatus(m.id) === 'done');
   const active = quetes.filter(m => getCompletionStatus(m.id) !== 'done');
-  $('#quetes-active-list').innerHTML = active.length ? active.map(missionCardHTML).join('') : '<div class="empty-state">Aucune quête active.</div>';
-  bindMissionCards($('#quetes-active-list'));
-  $('#quetes-done-list').innerHTML = done.map(missionCardHTML).join('');
-  bindMissionCards($('#quetes-done-list'));
+  const done   = quetes.filter(m => getCompletionStatus(m.id) === 'done');
+  const $activeList = $('#quetes-active-list');
+  $activeList.innerHTML = active.length ? active.map(missionCardHTML).join('') : '<div class="empty-state">Aucune quête active.</div>';
+  bindMissionCards($activeList);
+  const $doneList = $('#quetes-done-list');
+  if (done.length > 0) {
+    $doneList.innerHTML = '<div class="done-separator"><span>✅ Accomplies</span></div>' + done.map(missionCardHTML).join('');
+  } else {
+    $doneList.innerHTML = '';
+  }
+  bindMissionCards($doneList);
 }
 
 function renderBadgesPage() {
