@@ -852,19 +852,47 @@ async function handleMissionFormSubmit(e) {
     freq: $('#mission-freq-input').value,
     due: $('#mission-due-input').value || '',
     validation: $('#mission-validation-input').checked,
-    secret: false
+    secret: false,
+    createdAt: new Date().toISOString(),
   };
-  const result = editingMissionId ? await API.updateMission(editingMissionId, mission) : await API.createMission(mission);
-  if (result.ok !== false) {
-    showToast(editingMissionId ? 'Modifié ✓' : (mission.type === 'quete' ? 'Quête créée ! 🗺️' : 'Mission créée ! 🎯'), 'success');
-    $('#mission-form-modal').classList.add('hidden');
-    editingMissionId = null;
+
+  // 1. Mise à jour locale immédiate (optimistic update)
+  if (editingMissionId) {
+    const idx = STATE.missions.findIndex(m => m.id === editingMissionId);
+    if (idx !== -1) STATE.missions[idx] = mission;
+  } else {
+    STATE.missions.push(mission);
+  }
+  saveCache(); renderAll();
+  $('#mission-form-modal').classList.add('hidden');
+  editingMissionId = null;
+  showToast(mission.type === 'quete' ? 'Quête créée ! 🗺️' : 'Mission créée ! 🎯', 'success');
+
+  // 2. Envoi vers Sheets
+  STATE.syncBlocked = true;
+  const result = editingMissionId
+    ? await API.updateMission(mission.id, mission)
+    : await API.createMission(mission);
+
+  if (result.ok === false) {
+    showToast('⚠️ Erreur envoi Sheets : ' + (result.error || 'Inconnue'), 'error', 5000);
+  }
+
+  // 3. Resync après 4s pour laisser Sheets écrire
+  setTimeout(async () => {
+    STATE.syncBlocked = false;
     await syncFromSheets();
-  } else { showToast('Erreur : ' + (result.error || 'Inconnue'), 'error'); }
+  }, 4000);
 }
 window.doDeleteMission = function(id) {
   showConfirmModal('🗑️', 'Supprimer ?', 'Cette action est irréversible.', async () => {
-    await API.deleteMission(id); showToast('Supprimé.', 'info'); await syncFromSheets();
+    // Suppression locale immédiate
+    STATE.missions = STATE.missions.filter(m => m.id !== id);
+    saveCache(); renderAll();
+    showToast('Supprimé.', 'info');
+    STATE.syncBlocked = true;
+    await API.deleteMission(id);
+    setTimeout(async () => { STATE.syncBlocked = false; await syncFromSheets(); }, 4000);
   });
 };
 
@@ -896,17 +924,43 @@ async function handleRewardFormSubmit(e) {
     cost: parseInt($('#reward-cost-input').value) || 100,
     available: $('#reward-available-input').checked
   };
-  const result = editingRewardId ? await API.updateReward(editingRewardId, reward) : await API.createReward(reward);
-  if (result.ok !== false) {
-    showToast(editingRewardId ? 'Modifié ✓' : 'Récompense créée ! 🎁', 'success');
-    $('#reward-form-modal').classList.add('hidden');
-    editingRewardId = null;
+
+  // 1. Mise à jour locale immédiate
+  if (editingRewardId) {
+    const idx = STATE.rewards.findIndex(r => r.id === editingRewardId);
+    if (idx !== -1) STATE.rewards[idx] = reward;
+  } else {
+    STATE.rewards.push(reward);
+  }
+  saveCache(); renderAll();
+  $('#reward-form-modal').classList.add('hidden');
+  editingRewardId = null;
+  showToast(reward.title ? 'Récompense créée ! 🎁' : 'Modifié ✓', 'success');
+
+  // 2. Envoi vers Sheets
+  STATE.syncBlocked = true;
+  const result = editingRewardId
+    ? await API.updateReward(reward.id, reward)
+    : await API.createReward(reward);
+
+  if (result.ok === false) {
+    showToast('⚠️ Erreur envoi Sheets : ' + (result.error || 'Inconnue'), 'error', 5000);
+  }
+
+  // 3. Resync après 4s
+  setTimeout(async () => {
+    STATE.syncBlocked = false;
     await syncFromSheets();
-  } else { showToast('Erreur.', 'error'); }
+  }, 4000);
 }
 window.doDeleteReward = function(id) {
   showConfirmModal('🗑️', 'Supprimer ?', 'Irréversible.', async () => {
-    await API.deleteReward(id); showToast('Supprimée.', 'info'); await syncFromSheets();
+    STATE.rewards = STATE.rewards.filter(r => r.id !== id);
+    saveCache(); renderAll();
+    showToast('Supprimée.', 'info');
+    STATE.syncBlocked = true;
+    await API.deleteReward(id);
+    setTimeout(async () => { STATE.syncBlocked = false; await syncFromSheets(); }, 4000);
   });
 };
 
