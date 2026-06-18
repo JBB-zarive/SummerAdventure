@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6C63FF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Summer Adventure" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <script>
+    var isStandalone = window.navigator.standalone === true;
+    function fixHeight() {
+      var h = window.innerHeight;
+      document.documentElement.style.setProperty('--real-vh', h + 'px');
+      var app = document.getElementById('app');
+      if (app) { app.style.height = h + 'px'; app.style.maxHeight = h + 'px'; }
+    }
+    fixHeight();
+    if (isStandalone) {
+      setTimeout(fixHeight, 0); setTimeout(fixHeight, 100);
+      setTimeout(fixHeight, 300); setTimeout(fixHeight, 500);
+    }
+    window.addEventListener('resize', fixHeight);
+    window.addEventListener('orientationchange', function() { setTimeout(fixHeight, 500); });
+  </script>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Summer Adventure</title>
+  <style>
+    /* ── Setup Screen ── */
+    #setup-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, #6C63FF 0%, #A855F7 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    #setup-screen.hidden { display: none; }
+    .setup-card {
+      background: var(--bg-card, #fff);
+      border-radius: 24px; padding: 32px 24px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .setup-logo { font-size: 3rem; text-align: center; margin-bottom: 8px; }
+    .setup-title { font-size: 1.5rem; font-weight: 900; text-align: center; color: var(--text-primary,#1a1a2e); margin-bottom: 4px; }
+    .setup-subtitle { text-align: center; color: var(--text-secondary,#666); margin-bottom: 24px; font-size: 0.9rem; }
+    .setup-step { animation: fadeInUp 0.3s ease; }
+    .setup-label { font-weight: 700; font-size: 0.9rem; color: var(--text-primary,#1a1a2e); margin-bottom: 8px; display: block; }
+    .setup-input {
+      width: 100%; padding: 12px 16px; border-radius: 12px;
+      border: 2px solid #e0e0e0; font-size: 1rem; font-family: inherit;
+      background: var(--bg-input, #f8f8ff); color: var(--text-primary,#1a1a2e);
+      box-sizing: border-box; outline: none; transition: border-color 0.2s;
+    }
+    .setup-input:focus { border-color: #6C63FF; }
+    .setup-gender-group { display: flex; gap: 10px; margin-top: 4px; }
+    .setup-gender-label {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 12px 8px; border-radius: 14px;
+      border: 2px solid #e0e0e0; cursor: pointer;
+      font-size: 0.85rem; font-weight: 700; color: var(--text-secondary,#666);
+      transition: all 0.2s; user-select: none;
+    }
+    .setup-gender-label .gender-emoji { font-size: 1.6rem; }
+    .setup-gender-label input { display: none; }
+    .setup-gender-label:has(input:checked) { border-color: #6C63FF; background: #f0eeff; color: #6C63FF; }
+    .setup-field { margin-bottom: 20px; }
+    .setup-hint { font-size: 0.78rem; color: var(--text-secondary,#888); margin-top: 6px; line-height: 1.4; }
+    .setup-hint a { color: #6C63FF; text-decoration: none; }
+    .setup-btn {
+      width: 100%; padding: 14px; border-radius: 14px; border: none;
+      background: linear-gradient(135deg, #6C63FF, #A855F7);
+      color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer;
+      font-family: inherit; margin-top: 8px;
+    }
+    .setup-btn-secondary {
+      width: 100%; padding: 12px; border-radius: 14px;
+      border: 2px solid #e0e0e0; background: transparent;
+      color: var(--text-secondary,#666); font-size: 0.9rem;
+      font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px;
+    }
+    .setup-step-indicator {
+      display: flex; gap: 6px; justify-content: center; margin-bottom: 20px;
+    }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0e0e0; transition: background 0.3s; }
+    .step-dot.active { background: #6C63FF; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="theme-light">
+
+<!-- ══ SETUP SCREEN (premier lancement) ══════════════════════ -->
+<div id="setup-screen" class="hidden">
+  <div class="setup-card">
+    <div class="setup-logo">🌍</div>
+    <div class="setup-title">Summer Adventure</div>
+    <div class="setup-subtitle">Configurons l'application !</div>
+
+    <div class="setup-step-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+    </div>
+
+    <!-- Étape 1 : Enfant -->
+    <div id="setup-step-1" class="setup-step">
+      <div class="setup-field">
+        <label class="setup-label">👤 Prénom de l'enfant</label>
+        <input type="text" id="setup-child-name" class="setup-input" placeholder="Ex : Emma, Lucas…" maxlength="30" />
+      </div>
+      <div class="setup-field">
+        <label class="setup-label">🌈 Genre</label>
+        <div class="setup-gender-group">
+          <label class="setup-gender-label">
+            <input type="radio" name="setup-gender" value="fille" />
+            <span class="gender-emoji">👧</span>
+            Fille
+          </label>
+          <label class="setup-gender-label">
+            <input type="radio" name="setup-gender" value="garcon" />
+            <span class="gender-emoji">👦</span>
+            Garçon
+          </label>
+          <label class="setup-gender-label">
+            <input type="radio" name="setup-gender" value="neutre" />
+            <span class="gender-emoji">🧒</span>
+            Neutre
+          </label>
+        </div>
+        <p class="setup-hint">Cela personnalise les badges et les titres de niveaux.</p>
+      </div>
+      <button class="setup-btn" id="setup-next-btn">Continuer →</button>
+    </div>
+
+    <!-- Étape 2 : API -->
+    <div id="setup-step-2" class="setup-step hidden">
+      <div class="setup-field">
+        <label class="setup-label">🔗 URL de l'API Google Sheets</label>
+        <input type="url" id="setup-api-url" class="setup-input" placeholder="https://script.google.com/macros/s/…/exec" />
+        <p class="setup-hint">
+          Déploie d'abord le script Google Apps Script et copie l'URL ici.<br>
+          <a href="https://github.com" target="_blank">Voir le guide de déploiement →</a>
+        </p>
+      </div>
+      <button class="setup-btn" id="setup-finish-btn">🚀 Lancer l'aventure !</button>
+      <button class="setup-btn-secondary" id="setup-back-btn">← Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPLASH -->
+<div id="splash-screen" class="splash">
+  <div class="splash-content">
+    <div class="splash-logo">🌍</div>
+    <h1 class="splash-title">Summer Adventure</h1>
+    <p class="splash-tagline">Chaque jour est une aventure !</p>
+    <p id="splash-version" style="font-size:0.75rem;opacity:0.5;margin-top:4px;font-family:monospace;letter-spacing:1px"></p>
+    <div class="splash-loader"><div class="loader-bar"></div></div>
+  </div>
+</div>
+
+<!-- ══ MODALS ══════════════════════════════════════════════════ -->
+
+<!-- PIN -->
+<div id="pin-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-icon">🔐</div>
+    <h2>Espace Parents</h2>
+    <p>Entrez votre code PIN.</p>
+    <div class="pin-display" id="pin-display">
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" data-digit="1">1</button>
+      <button class="pin-key" data-digit="2">2</button>
+      <button class="pin-key" data-digit="3">3</button>
+      <button class="pin-key" data-digit="4">4</button>
+      <button class="pin-key" data-digit="5">5</button>
+      <button class="pin-key" data-digit="6">6</button>
+      <button class="pin-key" data-digit="7">7</button>
+      <button class="pin-key" data-digit="8">8</button>
+      <button class="pin-key" data-digit="9">9</button>
+      <button class="pin-key pin-clear" data-action="clear">✕</button>
+      <button class="pin-key" data-digit="0">0</button>
+      <button class="pin-key pin-back" data-action="back">⌫</button>
+    </div>
+    <p class="pin-error hidden" id="pin-error">Code incorrect. Réessayez.</p>
+    <button class="btn-secondary mt-8" id="pin-cancel">Annuler</button>
+  </div>
+</div>
+
+<!-- SUCCÈS MISSION -->
+<div id="success-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card success-card">
+    <div class="confetti-container" id="confetti-container"></div>
+    <div class="success-icon" id="success-emoji">⭐</div>
+    <h2 id="success-title">Mission accomplie !</h2>
+    <p id="success-message">Bravo !</p>
+    <div class="success-points" id="success-points">+50 XP</div>
+    <button class="btn-primary" id="success-close">Super !</button>
+  </div>
+</div>
+
+<!-- BADGE DÉBLOQUÉ -->
+<div id="badge-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card success-card">
+    <div class="confetti-container" id="badge-confetti"></div>
+    <div class="success-icon badge-unlock-icon" id="badge-modal-icon">🏆</div>
+    <h2>Badge débloqué !</h2>
+    <p id="badge-modal-name" style="font-size:1.1rem;font-weight:800;color:var(--amber)"></p>
+    <p id="badge-modal-desc"></p>
+    <button class="btn-primary" id="badge-modal-close">Génial !</button>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-icon" id="confirm-icon">❓</div>
+    <h2 id="confirm-title">Confirmer</h2>
+    <p id="confirm-message">Êtes-vous sûr ?</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="confirm-cancel">Annuler</button>
+      <button class="btn-primary" id="confirm-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PENDANT TON ABSENCE -->
+<div id="absence-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card absence-card">
+    <div class="absence-header">
+      <div class="absence-emoji">🌟</div>
+      <h2>Pendant ton absence...</h2>
+      <p>Voici ce qui s'est passé !</p>
+    </div>
+    <div id="absence-content" class="absence-body"></div>
+    <button class="btn-primary" id="absence-close" style="margin-top:16px">C'est noté ! 👍</button>
+  </div>
+</div>
+
+<!-- FORMULAIRE MISSION/QUÊTE -->
+<div id="mission-form-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card form-card">
+    <h2 id="mission-form-title">Nouvelle mission</h2>
+    <form id="mission-form" class="app-form">
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 70px">
+          <label>Icône</label>
+          <div class="emoji-picker-wrap">
+            <input type="text" id="mission-icon-input" value="🎯" maxlength="2" class="emoji-input" placeholder="🎯" />
+            <span class="emoji-hint">Tap pour choisir</span>
+          </div>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Titre <span class="req">*</span></label>
+          <input type="text" id="mission-title-input" placeholder="Nom de la mission" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="mission-desc-input" rows="2" placeholder="Détails…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="mission-type-input">
+            <option value="mission">🎯 Mission</option>
+            <option value="quete">🗺️ Quête</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Catégorie</label>
+          <select id="mission-cat-input">
+            <option value="Quotidien">📅 Quotidien</option>
+            <option value="Maison">🏠 Maison</option>
+            <option value="Vacances">🌴 Vacances</option>
+            <option value="Nature">🌿 Nature</option>
+            <option value="Lecture">📚 Lecture</option>
+            <option value="Créativité">🎨 Créativité</option>
+            <option value="Spécial">⭐ Spécial</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Points XP</label>
+        <input type="number" id="mission-points-input" value="20" min="5" max="500" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fréquence</label>
+          <select id="mission-freq-input">
+            <option value="unique">Une fois</option>
+            <option value="quotidien">Quotidien</option>
+            <option value="hebdo">Hebdomadaire</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date limite</label>
+          <input type="date" id="mission-due-input" />
+        </div>
+      </div>
+      <div class="form-checks">
+        <div class="form-check">
+          <input type="checkbox" id="mission-validation-input" checked />
+          <label for="mission-validation-input">Validation parentale requise</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="mission-form-cancel">Annuler</button>
+        <button type="submit" class="btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- FORMULAIRE RÉCOMPENSE -->
+<div id="reward-form-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card form-card">
+    <h2 id="reward-form-title">Nouvelle récompense</h2>
+    <form id="reward-form" class="app-form">
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 70px">
+          <label>Icône</label>
+          <input type="text" id="reward-icon-input" value="🎁" maxlength="2" class="emoji-input" />
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Titre <span class="req">*</span></label>
+          <input type="text" id="reward-title-input" placeholder="Nom de la récompense" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="reward-desc-input" rows="2" placeholder="Détails…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Coût en XP</label>
+        <input type="number" id="reward-cost-input" value="100" min="10" max="9999" />
+      </div>
+      <div class="form-check">
+        <input type="checkbox" id="reward-available-input" checked />
+        <label for="reward-available-input">Disponible immédiatement</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="reward-form-cancel">Annuler</button>
+        <button type="submit" class="btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════════ -->
+<div id="app" class="app hidden">
+
+  <header class="app-header">
+    <div class="header-content">
+      <div class="header-left">
+        <span class="app-logo">🌍</span>
+        <span class="app-name">Summer Adventure</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" id="refresh-btn" title="Recharger l'app">🔄</button>
+        <button class="icon-btn" id="theme-toggle">🌙</button>
+        <div class="xp-pill"><span>⚡</span><span id="header-xp-value">0</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- PAGE ACCUEIL -->
+    <section id="page-home" class="page active">
+      <div class="page-scroll">
+        <div class="hero-card">
+          <div class="hero-bg"></div>
+          <div class="hero-content">
+            <div class="avatar-wrapper">
+              <div class="avatar-frame"><span class="avatar-emoji" id="avatar-emoji">🧭</span></div>
+              <div class="level-badge" id="home-level-badge">Niv. 1</div>
+            </div>
+            <div class="hero-info">
+              <h2 id="hero-name">Aventurier</h2>
+              <p class="hero-title" id="hero-title">Explorateur·ice</p>
+              <div class="xp-bar-container">
+                <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar"></div></div>
+                <span class="xp-label" id="xp-label">0 / 100 XP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-chip"><span class="stat-icon">🔥</span><div><div class="stat-value" id="stat-streak">0</div><div class="stat-name">Jours</div></div></div>
+          <div class="stat-chip"><span class="stat-icon">⭐</span><div><div class="stat-value" id="stat-total-xp">0</div><div class="stat-name">XP Total</div></div></div>
+          <div class="stat-chip"><span class="stat-icon">🏆</span><div><div class="stat-value" id="stat-badges">0</div><div class="stat-name">Badges</div></div></div>
+          <div class="stat-chip"><span class="stat-icon">✅</span><div><div class="stat-value" id="stat-missions-done">0</div><div class="stat-name">Missions</div></div></div>
+        </div>
+
+        <p id="daily-counter" style="text-align:center;font-size:0.85rem;padding:0 16px;margin-bottom:4px"></p>
+
+        <div class="section-header"><h3>Missions du jour</h3><button class="see-all-btn" data-tab="missions">Tout voir →</button></div>
+        <div id="home-missions-list" class="missions-preview"></div>
+
+        <div class="section-header"><h3>Quêtes actives</h3><button class="see-all-btn" data-tab="quetes">Tout voir →</button></div>
+        <div id="home-quetes-list" class="missions-preview"></div>
+
+        <div class="section-header"><h3>Badges récents</h3><button class="see-all-btn" data-tab="badges">Tout voir →</button></div>
+        <div id="home-badges-list" class="badges-preview"></div>
+
+        <div class="section-header"><h3>Récompenses</h3><button class="see-all-btn" data-tab="rewards">Tout voir →</button></div>
+        <div id="home-rewards-list" class="rewards-preview"></div>
+      </div>
+    </section>
+
+    <!-- PAGE MISSIONS -->
+    <section id="page-missions" class="page">
+      <div class="page-scroll">
+        <div class="page-hero"><h2>🎯 Missions</h2><p>Accomplis tes missions quotidiennes !</p></div>
+        <div class="filter-bar" id="missions-filter">
+          <button class="filter-btn active" data-filter="all">Toutes</button>
+          <button class="filter-btn" data-filter="Quotidien">📅 Quotidien</button>
+          <button class="filter-btn" data-filter="Maison">🏠 Maison</button>
+          <button class="filter-btn" data-filter="Nature">🌿 Nature</button>
+          <button class="filter-btn" data-filter="Lecture">📚 Lecture</button>
+          <button class="filter-btn" data-filter="Créativité">🎨 Créativité</button>
+          <button class="filter-btn" data-filter="Spécial">⭐ Spécial</button>
+        </div>
+        <div id="missions-list" class="missions-grid"></div>
+      </div>
+    </section>
+
+    <!-- PAGE QUÊTES -->
+    <section id="page-quetes" class="page">
+      <div class="page-scroll">
+        <div class="page-hero quete-hero"><h2>🗺️ Quêtes</h2><p>Des défis spéciaux t'attendent !</p></div>
+        <div class="quete-sections">
+          <h3 class="section-title">⚡ Quêtes actives</h3>
+          <div id="quetes-active-list" class="missions-grid"></div>
+          <h3 class="section-title" style="margin-top:20px">✅ Quêtes accomplies</h3>
+          <div id="quetes-done-list" class="missions-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE BADGES -->
+    <section id="page-badges" class="page">
+      <div class="page-scroll">
+        <div class="page-hero"><h2>🏆 Badges</h2><p>Débloque tous les trophées !</p></div>
+        <div class="badges-progress-bar"><div class="badges-progress-fill" id="badges-progress-fill"></div></div>
+        <p class="badges-progress-label" id="badges-progress-label">0 / 0 débloqués</p>
+        <div id="badges-grid" class="badges-grid"></div>
+        <div id="trophees-section" style="display:none">
+          <h3 class="section-title">🏅 Trophées de quêtes</h3>
+          <div id="trophees-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE RÉCOMPENSES -->
+    <section id="page-rewards" class="page">
+      <div class="page-scroll">
+        <div class="page-hero"><h2>🎁 Récompenses</h2><p>Échange tes XP contre des récompenses !</p></div>
+        <div class="xp-balance-card">
+          <span class="balance-icon">⚡</span>
+          <div><div class="balance-value" id="balance-xp">0 XP</div><div class="balance-label">disponibles</div></div>
+        </div>
+        <div id="rewards-list" class="rewards-grid"></div>
+      </div>
+    </section>
+
+    <!-- PAGE PARENTS -->
+    <section id="page-parents" class="page">
+      <div class="page-scroll" id="parents-locked">
+        <div class="locked-screen">
+          <div class="lock-icon">🔐</div>
+          <h2>Espace Parents</h2>
+          <p>Zone réservée aux parents.</p>
+          <button class="btn-primary" id="open-pin-btn">Accéder</button>
+        </div>
+      </div>
+      <div class="page-scroll hidden" id="parents-content">
+        <div class="page-hero">
+          <h2>⚙️ Administration</h2>
+          <button class="btn-ghost" id="parents-logout">Se déconnecter</button>
+        </div>
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-admin="missions">Missions</button>
+          <button class="admin-tab" data-admin="quetes">Quêtes</button>
+          <button class="admin-tab" data-admin="validations">Validations</button>
+          <button class="admin-tab" data-admin="rewards">Récompenses</button>
+          <button class="admin-tab" data-admin="history">Historique</button>
+          <button class="admin-tab" data-admin="settings">Paramètres</button>
+        </div>
+
+        <div id="admin-missions" class="admin-panel active">
+          <div class="admin-actions"><button class="btn-primary" id="add-mission-btn">+ Nouvelle mission</button></div>
+          <div id="admin-missions-list" class="admin-list"></div>
+        </div>
+
+        <div id="admin-quetes" class="admin-panel">
+          <div class="admin-actions"><button class="btn-primary" id="add-quete-btn">+ Nouvelle quête</button></div>
+          <div id="admin-quetes-list" class="admin-list"></div>
+        </div>
+
+        <div id="admin-validations" class="admin-panel">
+          <div id="admin-validations-list" class="admin-list"><div class="empty-state">Aucune mission en attente.</div></div>
+        </div>
+
+        <div id="admin-rewards" class="admin-panel">
+          <div class="admin-actions"><button class="btn-primary" id="add-reward-btn">+ Nouvelle récompense</button></div>
+          <div id="admin-rewards-list" class="admin-list"></div>
+        </div>
+
+        <div id="admin-history" class="admin-panel">
+          <div id="admin-history-list" class="admin-list"></div>
+        </div>
+
+        <div id="admin-settings" class="admin-panel">
+
+          <!-- Infos enfant -->
+          <div class="settings-section">
+            <h3>👤 Infos de l'enfant</h3>
+            <div class="form-group">
+              <label>Prénom</label>
+              <input type="text" id="child-name-input" placeholder="Prénom de l'enfant" maxlength="30" />
+            </div>
+            <div class="form-group">
+              <label>Genre</label>
+              <div class="setup-gender-group" style="margin-top:4px">
+                <label class="setup-gender-label">
+                  <input type="radio" name="child-gender" value="fille" />
+                  <span class="gender-emoji">👧</span>Fille
+                </label>
+                <label class="setup-gender-label">
+                  <input type="radio" name="child-gender" value="garcon" />
+                  <span class="gender-emoji">👦</span>Garçon
+                </label>
+                <label class="setup-gender-label">
+                  <input type="radio" name="child-gender" value="neutre" />
+                  <span class="gender-emoji">🧒</span>Neutre
+                </label>
+              </div>
+            </div>
+            <button class="btn-primary" id="save-child-btn">Enregistrer</button>
+          </div>
+
+          <!-- Code PIN -->
+          <div class="settings-section">
+            <h3>🔐 Code PIN</h3>
+            <div class="form-group">
+              <label>Nouveau code PIN (4 chiffres)</label>
+              <input type="password" id="new-pin-input" maxlength="4" pattern="[0-9]{4}" placeholder="••••" />
+            </div>
+            <button class="btn-primary" id="save-pin-btn">Enregistrer</button>
+          </div>
+
+          <!-- Bonus de points -->
+          <div class="settings-section">
+            <h3>⭐ Bonus de points</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>XP bonus</label>
+                <input type="number" id="bonus-points-input" value="10" min="1" max="500" />
+              </div>
+              <div class="form-group">
+                <label>Raison</label>
+                <input type="text" id="bonus-reason-input" placeholder="Super effort !" />
+              </div>
+            </div>
+            <button class="btn-primary" id="give-bonus-btn">Attribuer des XP</button>
+          </div>
+
+          <!-- Déduction de points -->
+          <div class="settings-section">
+            <h3>⚠️ Déduire des points</h3>
+            <p class="settings-desc">En cas de punition ou de comportement à corriger.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>XP à déduire</label>
+                <input type="number" id="deduct-points-input" value="10" min="1" max="500" />
+              </div>
+              <div class="form-group">
+                <label>Raison <span class="req">*</span></label>
+                <input type="text" id="deduct-reason-input" placeholder="Ex : comportement irrespectueux" />
+              </div>
+            </div>
+            <button class="btn-danger-full" id="deduct-btn">Déduire des XP</button>
+          </div>
+
+          <!-- Synchronisation -->
+          <div class="settings-section">
+            <h3>🔄 Synchronisation Google Sheets</h3>
+            <p class="settings-desc">URL Google Apps Script :</p>
+            <div class="form-group">
+              <input type="url" id="api-url-input" placeholder="https://script.google.com/…" />
+            </div>
+            <button class="btn-primary" id="save-api-btn">Enregistrer l'URL</button>
+            <button class="btn-secondary" style="margin-top:8px" id="sync-btn">🔄 Récupérer depuis Sheets</button>
+            <button class="btn-secondary" style="margin-top:8px" id="push-btn">📤 Envoyer tout vers Sheets</button>
+            <button class="btn-secondary" style="margin-top:8px" id="clear-cache-btn">🗑️ Vider le cache navigateur</button>
+            <p class="settings-desc" id="sync-status" style="margin-top:8px"></p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="home"><span class="nav-icon">🏠</span><span class="nav-label">Accueil</span></button>
+    <button class="nav-btn" data-tab="missions"><span class="nav-icon">🎯</span><span class="nav-label">Missions</span></button>
+    <button class="nav-btn" data-tab="quetes"><span class="nav-icon">🗺️</span><span class="nav-label">Quêtes</span></button>
+    <button class="nav-btn" data-tab="badges"><span class="nav-icon">🏆</span><span class="nav-label">Badges</span></button>
+    <button class="nav-btn" data-tab="rewards"><span class="nav-icon">🎁</span><span class="nav-label">Récompenses</span></button>
+    <button class="nav-btn" data-tab="parents"><span class="nav-icon">⚙️</span><span class="nav-label">Parents</span></button>
+  </nav>
+</div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
