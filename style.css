@@ -538,3 +538,23 @@ a { color: inherit; text-decoration: none; }
 /* Setup screen step dot sync */
 #setup-screen #dot-1.active { background: #6C63FF; }
 #setup-screen #dot-2.active { background: #6C63FF; }
+
+/* ── Séparateur missions/quêtes accomplies ── */
+.done-separator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.done-separator::before,
+.done-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
